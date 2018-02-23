@@ -23,6 +23,7 @@ public final class NetworkUtils {
 
     private static final String api_key = "[YOUR_API_KEY]";
 
+
     public static URL buildURL(){
         Uri uri = Uri.parse(TMDB_BASE_URL).buildUpon()
                 .appendPath(POPULAR_END_POINT)
