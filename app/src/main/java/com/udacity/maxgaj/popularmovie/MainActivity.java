@@ -1,5 +1,6 @@
 package com.udacity.maxgaj.popularmovie;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -11,6 +12,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.udacity.maxgaj.popularmovie.models.Page;
 import com.udacity.maxgaj.popularmovie.utilities.JsonUtils;
@@ -19,7 +21,7 @@ import com.udacity.maxgaj.popularmovie.utilities.NetworkUtils;
 import java.io.IOException;
 import java.net.URL;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements PosterAdapter.PosterAdapterOnClickHandler {
 
     private Page mPage;
     private PosterAdapter mAdapter;
@@ -50,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
         mLoadingProgressBar = (ProgressBar) findViewById(R.id.pb_loading);
 
         GridLayoutManager layoutManager = new GridLayoutManager(this, 2);
-        mAdapter = new PosterAdapter();
+        mAdapter = new PosterAdapter(this);
         mPosterList.setLayoutManager(layoutManager);
         mPosterList.setHasFixedSize(true);
         mPosterList.setAdapter(mAdapter);
@@ -130,5 +132,11 @@ public class MainActivity extends AppCompatActivity {
             default:
                 return true;
         }
+    }
+
+    @Override
+    public void onClick(int clickedItemIndex) {
+        Context context = this;
+        Toast.makeText(context, String.valueOf(clickedItemIndex), Toast.LENGTH_SHORT).show();
     }
 }

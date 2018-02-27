@@ -18,8 +18,11 @@ import java.util.List;
 
 public class PosterAdapter extends RecyclerView.Adapter<PosterAdapter.PosterViewHolder>  {
     private List<String> mMovieData;
+    private final PosterAdapterOnClickHandler mClickHandler;
 
-    public PosterAdapter(){}
+    public PosterAdapter(PosterAdapterOnClickHandler clickHandler){
+        mClickHandler = clickHandler;
+    }
 
     public void setMovieData(List<String> movieData){
         mMovieData = movieData;
@@ -53,13 +56,23 @@ public class PosterAdapter extends RecyclerView.Adapter<PosterAdapter.PosterView
                 .into(holder.posterListItemImageView);
     }
 
+    public interface PosterAdapterOnClickHandler {
+        void onClick(int clickedItemIndex);
+    }
 
-    class PosterViewHolder extends RecyclerView.ViewHolder {
+
+    class PosterViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         ImageView posterListItemImageView;
 
         public PosterViewHolder(View itemView){
             super(itemView);
             posterListItemImageView = (ImageView) itemView.findViewById(R.id.iv_poster);
+            itemView.setOnClickListener(this);
+        }
+
+        public void onClick(View view){
+            int clickedItemIndex = getAdapterPosition();
+            mClickHandler.onClick(clickedItemIndex);
         }
     }
 }
