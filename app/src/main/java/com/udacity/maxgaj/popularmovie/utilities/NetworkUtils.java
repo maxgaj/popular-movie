@@ -20,6 +20,8 @@ public final class NetworkUtils {
     final static String POPULAR_END_POINT = "popular";
     final static String TOP_RATED_END_POINT = "top_rated";
     final static String API_KEY_PARAM = "api_key";
+    final static String TMDB_IMAGE_BASE_URL = "http://image.tmdb.org/t/p";
+    final static String TMDB_IMAGE_SIZE_PATH = "/w185";
 
     private static final String api_key = "[YOUR_API_KEY]";
 
@@ -37,6 +39,14 @@ public final class NetworkUtils {
             e.printStackTrace();
         }
         return url;
+    }
+
+    public static String buildImageUri(String imagePath){
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(TMDB_IMAGE_BASE_URL);
+        stringBuilder.append(TMDB_IMAGE_SIZE_PATH);
+        stringBuilder.append(imagePath);
+        return stringBuilder.toString();
     }
 
 //    Code based on what we learn in the Sunshine project

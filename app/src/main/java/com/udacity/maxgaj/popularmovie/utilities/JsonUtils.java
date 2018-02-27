@@ -23,14 +23,24 @@ public final class JsonUtils {
             int totalResults = pageData.optInt("total_results");
             int totalPages = pageData.optInt("total_pages");
             List<String> results = parseJsonArrayToList(resultsArray);
-            Log.d("JsonUtils.java", "parsePageJson: OK");
             return new Page(pageNumber, totalResults, totalPages, results);
 
         }
         catch (JSONException e) {
             e.printStackTrace();
-            Log.d("JsonUtils.java", "parsePageJson: KO");
             return new Page(1,1,1,new ArrayList<String>());
+        }
+    }
+
+    public static String getImagePathFromMovieJson (String json){
+        try {
+            JSONObject movieData = new JSONObject(json);
+            String imagePath = movieData.optString("poster_path");
+            return imagePath;
+        }
+        catch (JSONException e) {
+            e.printStackTrace();
+            return "";
         }
     }
 
@@ -45,4 +55,6 @@ public final class JsonUtils {
         }
         return list;
     }
+
+
 }
