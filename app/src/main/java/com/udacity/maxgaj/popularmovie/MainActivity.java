@@ -1,6 +1,7 @@
 package com.udacity.maxgaj.popularmovie;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -12,7 +13,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import com.udacity.maxgaj.popularmovie.models.Page;
 import com.udacity.maxgaj.popularmovie.utilities.JsonUtils;
@@ -107,7 +107,8 @@ public class MainActivity extends AppCompatActivity implements PosterAdapter.Pos
             mLoadingProgressBar.setVisibility(View.INVISIBLE);
             if (s != null && !s.equals("")) {
                 mPage = JsonUtils.parsePageJson(s);
-                mAdapter.setMovieData(mPage.getResults());
+                if (mPage != null)
+                    mAdapter.setMovieData(mPage.getResults());
             }
             else {
                 showErrorView();
@@ -137,6 +138,10 @@ public class MainActivity extends AppCompatActivity implements PosterAdapter.Pos
     @Override
     public void onClick(int clickedItemIndex) {
         Context context = this;
-        Toast.makeText(context, String.valueOf(clickedItemIndex), Toast.LENGTH_SHORT).show();
+        Class destination = DetailActivity.class;
+        String movieJson = mPage.getResult(clickedItemIndex);
+        Intent intent = new Intent(context, destination);
+        intent.putExtra(Intent.EXTRA_TEXT, movieJson);
+        startActivity(intent);
     }
 }

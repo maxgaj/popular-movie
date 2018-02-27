@@ -1,9 +1,7 @@
 package com.udacity.maxgaj.popularmovie;
 
 import android.content.Context;
-import android.net.Uri;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,7 +48,9 @@ public class PosterAdapter extends RecyclerView.Adapter<PosterAdapter.PosterView
     public void onBindViewHolder(PosterViewHolder holder, int position) {
         String movieJson = mMovieData.get(position);
         String imagePath = JsonUtils.getImagePathFromMovieJson(movieJson);
+        String movieTitle = JsonUtils.getTitleFromMovieJson(movieJson);
         String imageUri = NetworkUtils.buildImageUri(imagePath);
+        holder.posterListItemImageView.setContentDescription(movieTitle);
         Picasso.with(holder.posterListItemImageView.getContext())
                 .load(imageUri)
                 .into(holder.posterListItemImageView);

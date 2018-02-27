@@ -3,6 +3,7 @@ package com.udacity.maxgaj.popularmovie.utilities;
 
 import android.util.Log;
 
+import com.udacity.maxgaj.popularmovie.models.Movie;
 import com.udacity.maxgaj.popularmovie.models.Page;
 
 import org.json.JSONArray;
@@ -28,15 +29,45 @@ public final class JsonUtils {
         }
         catch (JSONException e) {
             e.printStackTrace();
-            return new Page(1,1,1,new ArrayList<String>());
+            return null;
         }
     }
+
+    public static Movie parseMovieJson(String json){
+        try {
+            JSONObject movieData = new JSONObject(json);
+            String title = movieData.optString("title");
+            String releaseDate = movieData.optString("release_date");
+            String moviePoster = movieData.optString("poster_path");
+            Double voteAverage = movieData.optDouble("vote_average");
+            String synopsis = movieData.optString("overview");
+            return new Movie(title, releaseDate, moviePoster, voteAverage, synopsis);
+        }
+        catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
 
     public static String getImagePathFromMovieJson (String json){
         try {
             JSONObject movieData = new JSONObject(json);
             String imagePath = movieData.optString("poster_path");
             return imagePath;
+        }
+        catch (JSONException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    public static String getTitleFromMovieJson (String json){
+        try {
+            JSONObject movieData = new JSONObject(json);
+            String title = movieData.optString("title");
+            return title;
         }
         catch (JSONException e) {
             e.printStackTrace();
