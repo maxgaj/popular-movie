@@ -4,6 +4,8 @@ package com.udacity.maxgaj.popularmovie.models;
 
 public class Movie {
     private String title;
+    private String originalTitle;
+    private String originalLanguage;
     private String releaseDate;
     private String moviePoster;
     private Double voteAverage;
@@ -11,12 +13,30 @@ public class Movie {
 
     public Movie(){}
 
-    public Movie(String title, String releaseDate, String moviePoster, Double voteAverage, String synopsis){
+    public Movie(String title, String originalTitle, String originalLanguage, String releaseDate, String moviePoster, Double voteAverage, String synopsis){
         this.title = title;
+        this.originalTitle = originalTitle;
+        this.originalLanguage = originalLanguage;
         this.releaseDate = releaseDate;
         this.moviePoster = moviePoster;
         this.voteAverage = voteAverage;
         this.synopsis = synopsis;
+    }
+
+    public String getOriginalTitle() {
+        return originalTitle;
+    }
+
+    public void setOriginalTitle(String originalTitle) {
+        this.originalTitle = originalTitle;
+    }
+
+    public String getOriginalLanguage() {
+        return originalLanguage;
+    }
+
+    public void setOriginalLanguage(String originalLanguage) {
+        this.originalLanguage = originalLanguage;
     }
 
     public String getTitle() {

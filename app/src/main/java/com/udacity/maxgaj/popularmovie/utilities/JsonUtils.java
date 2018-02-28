@@ -37,11 +37,13 @@ public final class JsonUtils {
         try {
             JSONObject movieData = new JSONObject(json);
             String title = movieData.optString("title");
+            String originalTitle = movieData.optString("original_title");
+            String originalLanguage = movieData.optString("original_language");
             String releaseDate = movieData.optString("release_date");
             String moviePoster = movieData.optString("poster_path");
             Double voteAverage = movieData.optDouble("vote_average");
             String synopsis = movieData.optString("overview");
-            return new Movie(title, releaseDate, moviePoster, voteAverage, synopsis);
+            return new Movie(title, originalTitle, originalLanguage, releaseDate, moviePoster, voteAverage, synopsis);
         }
         catch (JSONException e) {
             e.printStackTrace();

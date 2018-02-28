@@ -7,5 +7,14 @@
 
     <string name="action_refresh">Refresh</string>
 
-    <string name="poster_description">Movie poster</string>
+    <string name="movie_title">Loving</string>
+    <string name="movie_original_title_label">Original title</string>
+    <string name="movie_original_title">Amar</string>
+    <string name="movie_release_date_label">Release date</string>
+    <string name="movie_release_date">2017-04-21</string>
+    <string name="movie_vote_average_label">User rating</string>
+    <string name="movie_vote_average">4.5/10</string>
+    <string name="movie_overview_label">Plot synopsis</string>
+    <string name="movie_overview">Laura and Carlos love each other as if every day was the last, and perhaps that first love intensity is what will tear them apart a year later.</string>
+
 </resources>
