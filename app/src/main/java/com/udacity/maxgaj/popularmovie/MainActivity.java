@@ -1,8 +1,10 @@
 package com.udacity.maxgaj.popularmovie;
 
+import android.support.v4.app.LoaderManager.LoaderCallbacks;
+import android.support.v4.content.AsyncTaskLoader;
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
@@ -21,7 +23,9 @@ import com.udacity.maxgaj.popularmovie.utilities.NetworkUtils;
 import java.io.IOException;
 import java.net.URL;
 
-public class MainActivity extends AppCompatActivity implements PosterAdapter.PosterAdapterOnClickHandler {
+public class MainActivity extends AppCompatActivity implements
+        PosterAdapter.PosterAdapterOnClickHandler,
+        LoaderCallbacks<String> {
 
     private Page mPage;
     private PosterAdapter mAdapter;
@@ -29,6 +33,8 @@ public class MainActivity extends AppCompatActivity implements PosterAdapter.Pos
     private RecyclerView mPosterList;
     private View mErrorView;
     private ProgressBar mLoadingProgressBar;
+
+    private static final int LOADER_ID = 10;
 
 
     @Override
@@ -57,18 +63,15 @@ public class MainActivity extends AppCompatActivity implements PosterAdapter.Pos
         mPosterList.setHasFixedSize(true);
         mPosterList.setAdapter(mAdapter);
 
-        loadData();
-    }
-
-    private void loadData(){
-        showDataView();
-        URL url = NetworkUtils.buildURL();
-        new queryTask().execute(url);
+        int loaderId = LOADER_ID;
+        LoaderCallbacks<String> callbacks = MainActivity.this;
+        getSupportLoaderManager().initLoader(loaderId, null, callbacks);
     }
 
     private void refreshData(){
+        showDataView();
         mAdapter.setMovieData(null);
-        loadData();
+        getSupportLoaderManager().restartLoader(LOADER_ID, null, this);
     }
 
     private void showDataView(){
@@ -81,40 +84,61 @@ public class MainActivity extends AppCompatActivity implements PosterAdapter.Pos
         mPosterList.setVisibility(View.INVISIBLE);
     }
 
-    public class queryTask extends AsyncTask<URL, Void, String>{
+    @Override
+    public Loader<String> onCreateLoader(int i, Bundle bundle) {
+        return new AsyncTaskLoader<String>(this) {
+            String pageData = null;
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            mLoadingProgressBar.setVisibility(View.VISIBLE);
+            @Override
+            protected void onStartLoading() {
+                if (pageData != null){
+                    deliverResult(pageData);
+                }
+                else {
+                    mLoadingProgressBar.setVisibility(View.VISIBLE);
+                    forceLoad();
+                }
+            }
+
+            @Override
+            public String loadInBackground() {
+                URL url = NetworkUtils.buildURL();
+                String json = null;
+                try {
+                    json = NetworkUtils.getJsonFromUrl(url);
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return json;
+            }
+
+            @Override
+            public void deliverResult(String data) {
+                pageData = data;
+                super.deliverResult(data);
+            }
+        };
+    }
+
+    @Override
+    public void onLoadFinished(Loader<String> loader, String s) {
+        mLoadingProgressBar.setVisibility(View.INVISIBLE);
+        if (s != null && !s.equals("")) {
+            showDataView();
+            mPage = JsonUtils.parsePageJson(s);
+            if (mPage != null)
+                mAdapter.setMovieData(mPage.getResults());
         }
-
-        @Override
-        protected String doInBackground(URL... urls) {
-            URL url = urls[0];
-            String json = null;
-            try {
-                json = NetworkUtils.getJsonFromUrl(url);
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-            return json;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            mLoadingProgressBar.setVisibility(View.INVISIBLE);
-            if (s != null && !s.equals("")) {
-                mPage = JsonUtils.parsePageJson(s);
-                if (mPage != null)
-                    mAdapter.setMovieData(mPage.getResults());
-            }
-            else {
-                showErrorView();
-            }
+        else {
+            showErrorView();
         }
     }
+
+    @Override
+    public void onLoaderReset(Loader<String> loader) {}
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
