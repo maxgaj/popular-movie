@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -26,6 +25,9 @@ import com.udacity.maxgaj.popularmovie.utilities.NetworkUtils;
 import java.io.IOException;
 import java.net.URL;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+
 public class MainActivity extends AppCompatActivity implements
         PosterAdapter.PosterAdapterOnClickHandler,
         LoaderCallbacks<String>,
@@ -34,9 +36,9 @@ public class MainActivity extends AppCompatActivity implements
     private Page mPage;
     private PosterAdapter mAdapter;
 
-    private RecyclerView mPosterList;
-    private View mErrorView;
-    private ProgressBar mLoadingProgressBar;
+    @BindView(R.id.rv_posters) RecyclerView mPosterList;
+    @BindView(R.id.error_view) View mErrorView;
+    @BindView(R.id.pb_loading) ProgressBar mLoadingProgressBar;
 
     private static final int LOADER_ID = 10;
     private static boolean UPDATED_PREFERENCES = false;
@@ -46,9 +48,10 @@ public class MainActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        // Using ButterKnife as suggested by my first reviewer
+        ButterKnife.bind(this);
 
-        //handling button
-        //according to documentation
+        //handling button according to documentation
         //https://developer.android.com/reference/android/widget/Button.html
         final Button errorButton = findViewById(R.id.error_button);
         errorButton.setOnClickListener(new View.OnClickListener() {
@@ -57,10 +60,6 @@ public class MainActivity extends AppCompatActivity implements
                 refreshData();
             }
         });
-
-        mPosterList = (RecyclerView) findViewById(R.id.rv_posters);
-        mErrorView = findViewById(R.id.error_view);
-        mLoadingProgressBar = (ProgressBar) findViewById(R.id.pb_loading);
 
         GridLayoutManager layoutManager = new GridLayoutManager(this, 2);
         mAdapter = new PosterAdapter(this);
@@ -71,7 +70,6 @@ public class MainActivity extends AppCompatActivity implements
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
         setSortPreference(sharedPreferences.getString(getResources().getString(R.string.pref_sort_key), getResources().getString(R.string.pref_sort_popular)));
-
 
         int loaderId = LOADER_ID;
         LoaderCallbacks<String> callbacks = MainActivity.this;
@@ -169,7 +167,6 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onLoaderReset(Loader<String> loader) {}
-
 
 
     @Override

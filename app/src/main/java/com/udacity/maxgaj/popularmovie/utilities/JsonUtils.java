@@ -52,7 +52,6 @@ public final class JsonUtils {
     }
 
 
-
     public static String getImagePathFromMovieJson (String json){
         try {
             JSONObject movieData = new JSONObject(json);

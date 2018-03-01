@@ -12,30 +12,25 @@ import com.udacity.maxgaj.popularmovie.utilities.JsonUtils;
 import com.udacity.maxgaj.popularmovie.utilities.MovieUtils;
 import com.udacity.maxgaj.popularmovie.utilities.NetworkUtils;
 
-import org.json.JSONObject;
+import butterknife.BindView;
+import butterknife.ButterKnife;
 
 public class DetailActivity extends AppCompatActivity {
     private Movie mMovie;
 
-    private TextView mTitleTextView;
-    private ImageView mMoviePosterImageView;
-    private TextView mOriginalTitleTextView;
-    private TextView mReleaseDateTextView;
-    private TextView mVoteAverageTextView;
-    private TextView mOverviewTextView;
+    @BindView(R.id.tv_movie_title) TextView mTitleTextView;
+    @BindView(R.id.iv_movie_poster) ImageView mMoviePosterImageView;
+    @BindView(R.id.tv_movie_original_title) TextView mOriginalTitleTextView;
+    @BindView(R.id.tv_movie_release_date) TextView mReleaseDateTextView;
+    @BindView(R.id.tv_movie_vote_average) TextView mVoteAverageTextView;
+    @BindView(R.id.tv_movie_overview) TextView mOverviewTextView;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
-
-        mTitleTextView = (TextView) findViewById(R.id.tv_movie_title);
-        mMoviePosterImageView = (ImageView) findViewById(R.id.iv_movie_poster);
-        mOriginalTitleTextView = (TextView) findViewById(R.id.tv_movie_original_title);
-        mReleaseDateTextView = (TextView) findViewById(R.id.tv_movie_release_date);
-        mVoteAverageTextView = (TextView) findViewById(R.id.tv_movie_vote_average);
-        mOverviewTextView = (TextView) findViewById(R.id.tv_movie_overview);
+        ButterKnife.bind(this);
 
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
@@ -63,9 +58,6 @@ public class DetailActivity extends AppCompatActivity {
             mReleaseDateTextView.setText(MovieUtils.formatReleaseDate(mMovie.getReleaseDate()));
             mVoteAverageTextView.setText(MovieUtils.formatNote(mMovie.getVoteAverage()));
             mOverviewTextView.setText(mMovie.getSynopsis());
-
-
-
         }
     }
 }

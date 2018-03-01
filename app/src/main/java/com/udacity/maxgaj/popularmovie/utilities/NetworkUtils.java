@@ -2,8 +2,6 @@ package com.udacity.maxgaj.popularmovie.utilities;
 
 import android.net.Uri;
 
-import com.udacity.maxgaj.popularmovie.R;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
