@@ -1,5 +1,6 @@
 package com.udacity.maxgaj.popularmovie;
 
+import android.content.SharedPreferences;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.AsyncTaskLoader;
 import android.content.Context;
@@ -7,8 +8,10 @@ import android.content.Intent;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -25,7 +28,8 @@ import java.net.URL;
 
 public class MainActivity extends AppCompatActivity implements
         PosterAdapter.PosterAdapterOnClickHandler,
-        LoaderCallbacks<String> {
+        LoaderCallbacks<String>,
+        SharedPreferences.OnSharedPreferenceChangeListener{
 
     private Page mPage;
     private PosterAdapter mAdapter;
@@ -35,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements
     private ProgressBar mLoadingProgressBar;
 
     private static final int LOADER_ID = 10;
+    private static boolean UPDATED_PREFERENCES = false;
 
 
     @Override
@@ -63,9 +68,29 @@ public class MainActivity extends AppCompatActivity implements
         mPosterList.setHasFixedSize(true);
         mPosterList.setAdapter(mAdapter);
 
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+        setSortPreference(sharedPreferences.getString(getResources().getString(R.string.pref_sort_key), getResources().getString(R.string.pref_sort_popular)));
+
+
         int loaderId = LOADER_ID;
         LoaderCallbacks<String> callbacks = MainActivity.this;
         getSupportLoaderManager().initLoader(loaderId, null, callbacks);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (UPDATED_PREFERENCES){
+            getSupportLoaderManager().restartLoader(LOADER_ID, null, this);
+            UPDATED_PREFERENCES = false;
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        PreferenceManager.getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(this);
     }
 
     private void refreshData(){
@@ -82,6 +107,13 @@ public class MainActivity extends AppCompatActivity implements
     private void showErrorView(){
         mErrorView.setVisibility(View.VISIBLE);
         mPosterList.setVisibility(View.INVISIBLE);
+    }
+
+    private void setSortPreference(String sortPreference){
+        if (sortPreference.equals(getResources().getString(R.string.pref_sort_popular)))
+            NetworkUtils.setSortingToPopular();
+        else if (sortPreference.equals(getResources().getString(R.string.pref_sort_top_rated)))
+            NetworkUtils.setSortingToTopRated();
     }
 
     @Override
@@ -154,6 +186,10 @@ public class MainActivity extends AppCompatActivity implements
             case R.id.action_refresh:
                 refreshData();
                 return true;
+            case R.id.action_settings:
+                Intent intent = new Intent(this, SettingsActivity.class);
+                startActivity(intent);
+                return true;
             default:
                 return true;
         }
@@ -167,5 +203,13 @@ public class MainActivity extends AppCompatActivity implements
         Intent intent = new Intent(context, destination);
         intent.putExtra(Intent.EXTRA_TEXT, movieJson);
         startActivity(intent);
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
+       if (s.equals(getString(R.string.pref_sort_key))){
+           UPDATED_PREFERENCES = true;
+           setSortPreference(sharedPreferences.getString(s, getResources().getString(R.string.pref_sort_popular)));
+       }
     }
 }

@@ -23,12 +23,14 @@ public final class NetworkUtils {
     final static String TMDB_IMAGE_BASE_URL = "http://image.tmdb.org/t/p";
     final static String TMDB_IMAGE_SIZE_PATH = "/w185";
 
+    private static String sortingPreference = POPULAR_END_POINT;
+
     private static final String api_key = "[YOUR_API_KEY]";
 
 
     public static URL buildURL(){
         Uri uri = Uri.parse(TMDB_BASE_URL).buildUpon()
-                .appendPath(POPULAR_END_POINT)
+                .appendPath(sortingPreference)
                 .appendQueryParameter(API_KEY_PARAM, api_key)
                 .build();
         URL url = null;
@@ -71,6 +73,10 @@ public final class NetworkUtils {
         }
     }
 
-
-
+    public static void setSortingToPopular(){
+        sortingPreference = POPULAR_END_POINT;
+    }
+    public static void setSortingToTopRated(){
+        sortingPreference = TOP_RATED_END_POINT;
+    }
 }

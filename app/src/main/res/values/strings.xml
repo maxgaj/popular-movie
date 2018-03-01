@@ -6,6 +6,7 @@
     <string name="error_button">Retry</string>
 
     <string name="action_refresh">Refresh</string>
+    <string name="action_settings">Settings</string>
 
     <string name="movie_title">Loving</string>
     <string name="movie_original_title_label">Original title</string>
@@ -16,5 +17,12 @@
     <string name="movie_vote_average">4.5/10</string>
     <string name="movie_overview_label">Plot synopsis</string>
     <string name="movie_overview">Laura and Carlos love each other as if every day was the last, and perhaps that first love intensity is what will tear them apart a year later.</string>
+
+    <string name="pref_sort_label">Sort by</string>
+    <string name="pref_sort_key" translatable="false">sort</string>
+    <string name="pref_sort_popular_label">Most popular</string>
+    <string name="pref_sort_top_rated_label">Top rated</string>
+    <string name="pref_sort_popular" translatable="false">popular</string>
+    <string name="pref_sort_top_rated" translatable="false">rated</string>
 
 </resources>
