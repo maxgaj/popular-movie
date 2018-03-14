@@ -1,6 +1,7 @@
 package com.udacity.maxgaj.popularmovie.utilities;
 
 import android.net.Uri;
+import com.udacity.maxgaj.popularmovie.BuildConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,8 +24,7 @@ public final class NetworkUtils {
 
     private static String sortingPreference = POPULAR_END_POINT;
 
-    private static final String api_key = "[YOUR_API_KEY]";
-
+    private static final String api_key = BuildConfig.API_KEY;
 
     public static URL buildURL(){
         Uri uri = Uri.parse(TMDB_BASE_URL).buildUpon()

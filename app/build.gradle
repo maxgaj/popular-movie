@@ -16,6 +16,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+//    Storing TheMovieDbApiKey in gradle.properties as suggested by reviewer
+//    according to suggested discussion
+//    https://stackoverflow.com/questions/33134031/is-there-a-safe-way-to-manage-api-keys/34021467#34021467
+    buildTypes.each {
+        it.buildConfigField('String', 'API_KEY', TheMovieDbApiKey)
+    }
 }
 
 repositories {
