@@ -11,7 +11,7 @@ import java.net.URL;
 import java.util.Scanner;
 
 /**
- * Utilities to communicate with  TMDb
+ * Utilities to communicate with TMDb
  */
 public final class NetworkUtils {
     // Constants to help building the URL

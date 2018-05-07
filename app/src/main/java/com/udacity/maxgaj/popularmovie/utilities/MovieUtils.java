@@ -1,6 +1,11 @@
 package com.udacity.maxgaj.popularmovie.utilities;
 
 
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;

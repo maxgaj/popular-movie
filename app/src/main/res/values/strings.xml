@@ -2,7 +2,8 @@
     <string name="app_name">Popular Movie</string>
 
     <string name="error_title">Something went wrong...</string>
-    <string name="error_message">Impossible to retrieve data\nPlease check your Internet connection and try again</string>
+    <string name="error_message">Impossible to retrieve data\nPlease check your Internet connection and try again
+    </string>
     <string name="error_button">Retry</string>
 
     <string name="action_refresh">Refresh</string>
@@ -18,7 +19,11 @@
     <string name="movie_vote_average_label">User rating</string>
     <string name="movie_vote_average">4.5/10</string>
     <string name="movie_overview_label">Plot synopsis</string>
-    <string name="movie_overview">Laura and Carlos love each other as if every day was the last, and perhaps that first love intensity is what will tear them apart a year later.</string>
+    <string name="movie_overview">Laura and Carlos love each other as if every day was the last, and perhaps that first
+        love intensity is what will tear them apart a year later.
+    </string>
+    <string name="movie_review_label">Latest Reviews</string>
+    <string name="movie_review_error">No review available</string>
 
     <string name="pref_sort_label">Sort by</string>
     <string name="pref_sort_key" translatable="false">sort</string>
@@ -26,5 +31,12 @@
     <string name="pref_sort_top_rated_label">Top rated</string>
     <string name="pref_sort_popular" translatable="false">popular</string>
     <string name="pref_sort_top_rated" translatable="false">rated</string>
+
+    <string name="base_url_tmdb" translatable="false">https://api.themoviedb.org/</string>
+    <string name="title_activity_test">TestActivity</string>
+    <string name="tab_text_1">Tab 1</string>
+    <string name="tab_text_2">Tab 2</string>
+    <string name="tab_text_3">Tab 3</string>
+    <string name="section_format">Hello World from section: %1$d</string>
 
 </resources>
