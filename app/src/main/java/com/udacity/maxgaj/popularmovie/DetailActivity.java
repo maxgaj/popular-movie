@@ -1,17 +1,17 @@
 package com.udacity.maxgaj.popularmovie;
 
 import android.content.Intent;
+import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.*;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.picasso.Picasso;
-import com.udacity.maxgaj.popularmovie.models.Movie;
-import com.udacity.maxgaj.popularmovie.models.Review;
-import com.udacity.maxgaj.popularmovie.models.ReviewList;
+import com.udacity.maxgaj.popularmovie.models.*;
 import com.udacity.maxgaj.popularmovie.network.TheMovieDBClient;
 import com.udacity.maxgaj.popularmovie.utilities.JsonUtils;
 import com.udacity.maxgaj.popularmovie.utilities.MovieUtils;
@@ -29,9 +29,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.util.List;
 
-public class DetailActivity extends AppCompatActivity implements Callback<ReviewList> {
+public class DetailActivity extends AppCompatActivity {
     private Movie mMovie;
-    private ReviewList reviewList;
+    private ReviewList mReviewList;
+    private TrailerList mTrailerList;
 
     @BindView(R.id.tv_movie_title) TextView mTitleTextView;
     @BindView(R.id.iv_movie_poster) ImageView mMoviePosterImageView;
@@ -39,11 +40,10 @@ public class DetailActivity extends AppCompatActivity implements Callback<Review
     @BindView(R.id.tv_movie_release_date) TextView mReleaseDateTextView;
     @BindView(R.id.tv_movie_vote_average) TextView mVoteAverageTextView;
     @BindView(R.id.tv_movie_overview) TextView mOverviewTextView;
-    @BindView(R.id.tv_review_content_1) TextView mFirstReviewContent;
-    @BindView(R.id.tv_review_author_1) TextView mFirstReviewAuthor;
-    @BindView(R.id.tv_review_content_2) TextView mSecondReviewContent;
-    @BindView(R.id.tv_review_author_2) TextView mSecondReviewAuthor;
+    @BindView(R.id.tv_trailer_error) TextView mTrailerError;
     @BindView(R.id.tv_review_error) TextView mReviewError;
+    @BindView(R.id.ll_trailer) LinearLayout mTrailerView;
+    @BindView(R.id.ll_review) LinearLayout mReviewView;
 
 
     @Override
@@ -78,7 +78,58 @@ public class DetailActivity extends AppCompatActivity implements Callback<Review
             mReleaseDateTextView.setText(MovieUtils.formatReleaseDate(mMovie.getReleaseDate()));
             mVoteAverageTextView.setText(MovieUtils.formatNote(mMovie.getVoteAverage()));
             mOverviewTextView.setText(mMovie.getSynopsis());
+            fetchTrailers();
             fetchReviews();
+        }
+    }
+
+    /* FETCHING TRAILERS */
+    private void fetchTrailers(){
+        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+        httpClient.addInterceptor(logging);
+        Gson gson = new GsonBuilder().setLenient().create();
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(getResources().getString(R.string.base_url_tmdb))
+                .addConverterFactory(GsonConverterFactory.create(gson))
+                .client(httpClient.build())
+                .build();
+        TheMovieDBClient movieDBClient = retrofit.create(TheMovieDBClient.class);
+        Call<TrailerList> call = movieDBClient.loadTrailers(Integer.toString(mMovie.getId()), BuildConfig.API_KEY);
+        call.enqueue(new Callback<TrailerList>() {
+            @Override
+            public void onResponse(Call<TrailerList> call, Response<TrailerList> response) {
+                if(response.isSuccessful()) {
+                    mTrailerList = response.body();
+                    List<Trailer> trailers = mTrailerList.getResults();
+                    int size = trailers.size();
+                    if (size <= 0)
+                        mTrailerError.setVisibility(View.VISIBLE);
+                    else {
+                        mTrailerError.setVisibility(View.INVISIBLE);
+                        addTrailersToUI(trailers);
+                    }
+                } else {
+                    System.out.println(response.errorBody());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<TrailerList> call, Throwable t) {
+                t.printStackTrace();
+            }
+        });
+    }
+
+    private void addTrailersToUI(List<Trailer> trailers){
+        LayoutInflater inflater = (LayoutInflater) getSystemService(this.LAYOUT_INFLATER_SERVICE);
+        for(Trailer trailer : trailers){
+            ConstraintLayout layout = (ConstraintLayout) inflater.inflate(R.layout.trailer_list_item, null);
+            TextView contentTextView = (TextView) layout.getChildAt(1);
+            contentTextView.setText(trailer.getName());
+            layout.setOnClickListener(new TrailerListener(trailer.getKey()));
+            this.mTrailerView.addView(layout);
         }
     }
 
@@ -97,43 +148,42 @@ public class DetailActivity extends AppCompatActivity implements Callback<Review
                 .build();
         TheMovieDBClient movieDBClient = retrofit.create(TheMovieDBClient.class);
         Call<ReviewList> call = movieDBClient.loadReviews(Integer.toString(mMovie.getId()), BuildConfig.API_KEY);
-        call.enqueue(this);
+        call.enqueue(new Callback<ReviewList>() {
+            @Override
+            public void onResponse(Call<ReviewList> call, Response<ReviewList> response) {
+                if(response.isSuccessful()) {
+                    mReviewList = (ReviewList) response.body();
+                    List<Review> reviews = mReviewList.getResults();
+                    int size = reviews.size();
+                    if (size <= 0)
+                        mReviewError.setVisibility(View.VISIBLE);
+                    else {
+                        mReviewError.setVisibility(View.INVISIBLE);
+                        addReviewsToUI(reviews);
+                    }
+
+                } else {
+                    System.out.println(response.errorBody());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ReviewList> call, Throwable t) {
+                t.printStackTrace();
+            }
+        });
+
     }
 
-    @Override
-    public void onResponse(Call<ReviewList> call, Response<ReviewList> response) {
-        if(response.isSuccessful()) {
-            this.reviewList = response.body();
-            List<Review> reviews = this.reviewList.getResults();
-            int size = reviews.size();
-            if (size == 0){
-                this.mReviewError.setVisibility(View.VISIBLE);
-                this.mFirstReviewAuthor.setVisibility(View.INVISIBLE);
-                this.mFirstReviewContent.setVisibility(View.INVISIBLE);
-                this.mSecondReviewAuthor.setVisibility(View.INVISIBLE);
-                this.mSecondReviewContent.setVisibility(View.INVISIBLE);
-            }
-            else {
-                this.mReviewError.setVisibility(View.INVISIBLE);
-                Review review1 = reviews.get(0);
-                this.mFirstReviewContent.setText(review1.getContent());
-                this.mFirstReviewAuthor.setText("- "+review1.getAuthor());
-                if (size > 1 ){
-                    Review review2 = reviews.get(1);
-                    this.mSecondReviewContent.setText(review2.getContent());
-                    this.mSecondReviewAuthor.setText("- "+review2.getAuthor());
-                }
-                else {
-                    this.mSecondReviewAuthor.setVisibility(View.INVISIBLE);
-                    this.mSecondReviewContent.setVisibility(View.INVISIBLE);
-                }
-            }
-
-        } else {
-            System.out.println(response.errorBody());
+    private void addReviewsToUI(List<Review> reviews){
+        LayoutInflater inflater = (LayoutInflater) getSystemService(this.LAYOUT_INFLATER_SERVICE);
+        for(Review review : reviews){
+            LinearLayout layout = (LinearLayout) inflater.inflate(R.layout.review_list_item, null);
+            TextView contentTextView = (TextView) layout.getChildAt(0);
+            TextView authorTextView = (TextView) layout.getChildAt(1);
+            contentTextView.setText(review.getContent());
+            authorTextView.setText("- "+review.getAuthor());
+            this.mReviewView.addView(layout);
         }
     }
-
-    @Override
-    public void onFailure(Call<ReviewList> call, Throwable t) { t.printStackTrace(); }
 }

@@ -22,8 +22,10 @@
     <string name="movie_overview">Laura and Carlos love each other as if every day was the last, and perhaps that first
         love intensity is what will tear them apart a year later.
     </string>
-    <string name="movie_review_label">Latest Reviews</string>
+    <string name="movie_review_label">Reviews</string>
     <string name="movie_review_error">No review available</string>
+    <string name="movie_trailer_label">Trailers</string>
+    <string name="movie_trailer_error">No trailer available</string>
 
     <string name="pref_sort_label">Sort by</string>
     <string name="pref_sort_key" translatable="false">sort</string>
