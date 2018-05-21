@@ -23,6 +23,7 @@ public final class NetworkUtils {
     final static String TMDB_IMAGE_SIZE_PATH = "/w185";
 
     private static String sortingPreference = POPULAR_END_POINT;
+    private static boolean favoriteSorting = false;
 
     private static final String api_key = BuildConfig.API_KEY;
 
@@ -72,9 +73,17 @@ public final class NetworkUtils {
     }
 
     public static void setSortingToPopular(){
+        favoriteSorting = false;
         sortingPreference = POPULAR_END_POINT;
     }
     public static void setSortingToTopRated(){
+        favoriteSorting = false;
         sortingPreference = TOP_RATED_END_POINT;
+    }
+    public static void setSortingToFavorite(){
+        favoriteSorting = true;
+    }
+    public static boolean isFavoriteSorting(){
+        return favoriteSorting;
     }
 }

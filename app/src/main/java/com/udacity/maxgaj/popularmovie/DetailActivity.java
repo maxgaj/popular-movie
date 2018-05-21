@@ -1,6 +1,14 @@
 package com.udacity.maxgaj.popularmovie;
 
+import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -11,6 +19,8 @@ import android.widget.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.picasso.Picasso;
+import com.udacity.maxgaj.popularmovie.data.PopularMovieContract;
+import com.udacity.maxgaj.popularmovie.data.PopularMovieDbHelper;
 import com.udacity.maxgaj.popularmovie.models.*;
 import com.udacity.maxgaj.popularmovie.network.TheMovieDBClient;
 import com.udacity.maxgaj.popularmovie.utilities.JsonUtils;
@@ -27,14 +37,19 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.sql.Blob;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DetailActivity extends AppCompatActivity {
     private Movie mMovie;
     private ReviewList mReviewList;
     private TrailerList mTrailerList;
+    private SQLiteDatabase mDb;
 
     @BindView(R.id.tv_movie_title) TextView mTitleTextView;
+    @BindView(R.id.tb_favorite) ToggleButton mFavoriteToggleButton;
     @BindView(R.id.iv_movie_poster) ImageView mMoviePosterImageView;
     @BindView(R.id.tv_movie_original_title) TextView mOriginalTitleTextView;
     @BindView(R.id.tv_movie_release_date) TextView mReleaseDateTextView;
@@ -49,6 +64,10 @@ public class DetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        PopularMovieDbHelper dbHelper = new PopularMovieDbHelper(this);
+        mDb = dbHelper.getWritableDatabase();
+
         setContentView(R.layout.activity_detail);
         ButterKnife.bind(this);
 
@@ -66,18 +85,63 @@ public class DetailActivity extends AppCompatActivity {
             String title = mMovie.getTitle();
             String imageUri = NetworkUtils.buildImageUri(mMovie.getMoviePoster());
             String contentDescription = title+" movie poster";
+            mMoviePosterImageView.setContentDescription(contentDescription);
 
             mTitleTextView.setText(title);
 
-            mMoviePosterImageView.setContentDescription(contentDescription);
-            Picasso.with(this)
-                    .load(imageUri)
-                    .into(mMoviePosterImageView);
+            if (!NetworkUtils.isFavoriteSorting()) {
+                Picasso.with(this)
+                        .load(imageUri)
+                        .into(mMoviePosterImageView);
+            }
+            else{
+                int movieId = mMovie.getId();
+                Cursor cursor = mDb.query(
+                        PopularMovieContract.MovieEntry.TABLE_MOVIE,
+                        new String[]{PopularMovieContract.MovieEntry.COLUMN_POSTER_BLOB},
+                        PopularMovieContract.MovieEntry.COLUMN_ID + "=" + movieId,
+                        null,
+                        null,
+                        null,
+                        null
+                );
+                try {
+                    if (cursor != null) {
+                        cursor.moveToFirst();
+                        byte[] moviePosterBlob = cursor.getBlob(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_POSTER_BLOB));
+                        Bitmap moviePosterBitmap = BitmapFactory.decodeByteArray(moviePosterBlob, 0, moviePosterBlob.length);
+                        mMoviePosterImageView.setImageBitmap(moviePosterBitmap);
+                    }
+                } finally {
+                    cursor.close();
+                }
+            }
 
             mOriginalTitleTextView.setText(MovieUtils.formatOriginalTitle(mMovie.getOriginalTitle(), mMovie.getOriginalLanguage()));
             mReleaseDateTextView.setText(MovieUtils.formatReleaseDate(mMovie.getReleaseDate()));
             mVoteAverageTextView.setText(MovieUtils.formatNote(mMovie.getVoteAverage()));
             mOverviewTextView.setText(mMovie.getSynopsis());
+
+            // Based on
+            // https://developer.android.com/guide/topics/ui/controls/togglebutton
+            // https://stackoverflow.com/questions/11499574/toggle-button-using-two-image-on-different-state
+            mFavoriteToggleButton.setChecked(isFavoriteChecked());
+            mFavoriteToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                    if (b) {
+                        addMovieToFavorite();
+                        Toast toast = Toast.makeText(getApplicationContext(), getString(R.string.favorite_add), Toast.LENGTH_SHORT);
+                        toast.show();
+                    }
+                    else {
+                        removeMovieFromFavorite();
+                        Toast toast = Toast.makeText(getApplicationContext(), getString(R.string.favorite_removed), Toast.LENGTH_SHORT);
+                        toast.show();
+                    }
+                }
+            });
+
             fetchTrailers();
             fetchReviews();
         }
@@ -85,41 +149,77 @@ public class DetailActivity extends AppCompatActivity {
 
     /* FETCHING TRAILERS */
     private void fetchTrailers(){
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
-        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-        httpClient.addInterceptor(logging);
-        Gson gson = new GsonBuilder().setLenient().create();
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(getResources().getString(R.string.base_url_tmdb))
-                .addConverterFactory(GsonConverterFactory.create(gson))
-                .client(httpClient.build())
-                .build();
-        TheMovieDBClient movieDBClient = retrofit.create(TheMovieDBClient.class);
-        Call<TrailerList> call = movieDBClient.loadTrailers(Integer.toString(mMovie.getId()), BuildConfig.API_KEY);
-        call.enqueue(new Callback<TrailerList>() {
-            @Override
-            public void onResponse(Call<TrailerList> call, Response<TrailerList> response) {
-                if(response.isSuccessful()) {
-                    mTrailerList = response.body();
-                    List<Trailer> trailers = mTrailerList.getResults();
-                    int size = trailers.size();
-                    if (size <= 0)
-                        mTrailerError.setVisibility(View.VISIBLE);
-                    else {
-                        mTrailerError.setVisibility(View.INVISIBLE);
-                        addTrailersToUI(trailers);
+        if (!NetworkUtils.isFavoriteSorting()) {
+            // Fetching from network
+            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+            OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+            httpClient.addInterceptor(logging);
+            Gson gson = new GsonBuilder().setLenient().create();
+            Retrofit retrofit = new Retrofit.Builder()
+                    .baseUrl(getResources().getString(R.string.base_url_tmdb))
+                    .addConverterFactory(GsonConverterFactory.create(gson))
+                    .client(httpClient.build())
+                    .build();
+            TheMovieDBClient movieDBClient = retrofit.create(TheMovieDBClient.class);
+            Call<TrailerList> call = movieDBClient.loadTrailers(Integer.toString(mMovie.getId()), BuildConfig.API_KEY);
+            call.enqueue(new Callback<TrailerList>() {
+                @Override
+                public void onResponse(Call<TrailerList> call, Response<TrailerList> response) {
+                    if (response.isSuccessful()) {
+                        mTrailerList = response.body();
+                        List<Trailer> trailers = mTrailerList.getResults();
+                        int size = trailers.size();
+                        if (size <= 0)
+                            mTrailerError.setVisibility(View.VISIBLE);
+                        else {
+                            mTrailerError.setVisibility(View.INVISIBLE);
+                            addTrailersToUI(trailers);
+                        }
+                    } else {
+                        System.out.println(response.errorBody());
                     }
-                } else {
-                    System.out.println(response.errorBody());
                 }
-            }
 
-            @Override
-            public void onFailure(Call<TrailerList> call, Throwable t) {
-                t.printStackTrace();
+                @Override
+                public void onFailure(Call<TrailerList> call, Throwable t) {
+                    t.printStackTrace();
+                }
+            });
+        }
+        else {
+            // Fetching from DB
+            int movieId = mMovie.getId();
+            Cursor cursor = mDb.query(
+                    PopularMovieContract.TrailerEntry.TABLE_TRAILER,
+                    null,
+                    PopularMovieContract.TrailerEntry.COLUMN_MOVIE + "=" + movieId,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+            List<Trailer> trailers = new ArrayList<>();
+            try {
+                while (cursor.moveToNext()){
+                    String id = cursor.getString(cursor.getColumnIndex(PopularMovieContract.TrailerEntry.COLUMN_ID));
+                    String key = cursor.getString(cursor.getColumnIndex(PopularMovieContract.TrailerEntry.COLUMN_KEY));
+                    String name = cursor.getString(cursor.getColumnIndex(PopularMovieContract.TrailerEntry.COLUMN_NAME));
+
+                   Trailer trailer = new Trailer(id, key, name);
+                   trailers.add(trailer);
+                }
+            } finally {
+                cursor.close();
             }
-        });
+            mTrailerList = new TrailerList(movieId, trailers);
+            if (trailers.size() <= 0 )
+                mTrailerError.setVisibility(View.VISIBLE);
+            else {
+                mTrailerError.setVisibility(View.INVISIBLE);
+                addTrailersToUI(trailers);
+            }
+        }
     }
 
     private void addTrailersToUI(List<Trailer> trailers){
@@ -136,42 +236,80 @@ public class DetailActivity extends AppCompatActivity {
 
     /* FETCHING REVIEWS */
     private void fetchReviews(){
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
-        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-        httpClient.addInterceptor(logging);
-        Gson gson = new GsonBuilder().setLenient().create();
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(getResources().getString(R.string.base_url_tmdb))
-                .addConverterFactory(GsonConverterFactory.create(gson))
-                .client(httpClient.build())
-                .build();
-        TheMovieDBClient movieDBClient = retrofit.create(TheMovieDBClient.class);
-        Call<ReviewList> call = movieDBClient.loadReviews(Integer.toString(mMovie.getId()), BuildConfig.API_KEY);
-        call.enqueue(new Callback<ReviewList>() {
-            @Override
-            public void onResponse(Call<ReviewList> call, Response<ReviewList> response) {
-                if(response.isSuccessful()) {
-                    mReviewList = (ReviewList) response.body();
-                    List<Review> reviews = mReviewList.getResults();
-                    int size = reviews.size();
-                    if (size <= 0)
-                        mReviewError.setVisibility(View.VISIBLE);
-                    else {
-                        mReviewError.setVisibility(View.INVISIBLE);
-                        addReviewsToUI(reviews);
+        if (!NetworkUtils.isFavoriteSorting()) {
+            // Fetching from network
+            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+            OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+            httpClient.addInterceptor(logging);
+            Gson gson = new GsonBuilder().setLenient().create();
+            Retrofit retrofit = new Retrofit.Builder()
+                    .baseUrl(getResources().getString(R.string.base_url_tmdb))
+                    .addConverterFactory(GsonConverterFactory.create(gson))
+                    .client(httpClient.build())
+                    .build();
+            TheMovieDBClient movieDBClient = retrofit.create(TheMovieDBClient.class);
+            Call<ReviewList> call = movieDBClient.loadReviews(Integer.toString(mMovie.getId()), BuildConfig.API_KEY);
+            call.enqueue(new Callback<ReviewList>() {
+                @Override
+                public void onResponse(Call<ReviewList> call, Response<ReviewList> response) {
+                    if (response.isSuccessful()) {
+                        mReviewList = (ReviewList) response.body();
+                        List<Review> reviews = mReviewList.getResults();
+                        int size = reviews.size();
+                        if (size <= 0)
+                            mReviewError.setVisibility(View.VISIBLE);
+                        else {
+                            mReviewError.setVisibility(View.INVISIBLE);
+                            addReviewsToUI(reviews);
+                        }
+
+                    } else {
+                        System.out.println(response.errorBody());
                     }
-
-                } else {
-                    System.out.println(response.errorBody());
                 }
+
+                @Override
+                public void onFailure(Call<ReviewList> call, Throwable t) {
+                    t.printStackTrace();
+                }
+            });
+        }
+        else {
+            // Fetching from DB
+            int movieId = mMovie.getId();
+            Cursor cursor = mDb.query(
+                    PopularMovieContract.ReviewEntry.TABLE_REVIEW,
+                    null,
+                    PopularMovieContract.ReviewEntry.COLUMN_MOVIE + "=" + movieId,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+            List<Review> reviews = new ArrayList<>();
+            try {
+                while (cursor.moveToNext()){
+                    String id = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_ID));
+                    String author = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_AUTHOR));
+                    String content = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_CONTENT));
+                    String url = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_URL));
+
+                    Review review = new Review(author, content, id, url);
+                    reviews.add(review);
+                }
+            } finally {
+                cursor.close();
+            }
+            mReviewList = new ReviewList(movieId, 1, reviews, 1, reviews.size());
+            if (reviews.size() <= 0 )
+                mReviewError.setVisibility(View.VISIBLE);
+            else {
+                mReviewError.setVisibility(View.INVISIBLE);
+                addReviewsToUI(reviews);
             }
 
-            @Override
-            public void onFailure(Call<ReviewList> call, Throwable t) {
-                t.printStackTrace();
-            }
-        });
+        }
 
     }
 
@@ -185,5 +323,85 @@ public class DetailActivity extends AppCompatActivity {
             authorTextView.setText("- "+review.getAuthor());
             this.mReviewView.addView(layout);
         }
+    }
+
+    /* Data */
+    private boolean isFavoriteChecked(){
+        int movieId = mMovie.getId();
+        Cursor cursor = mDb.query(
+                PopularMovieContract.MovieEntry.TABLE_MOVIE,
+                new String[] { "COUNT(*) AS nb" },
+                PopularMovieContract.MovieEntry.COLUMN_ID + "=" + movieId,
+                null,
+                null,
+                null,
+                null
+        );
+        boolean isChecked = false;
+        try {
+            cursor.moveToFirst();
+            int nb = cursor.getInt(cursor.getColumnIndex("nb"));
+            isChecked = (nb>0) ? true : false;
+        } finally {
+            cursor.close();
+        }
+        return isChecked;
+    }
+
+    private void addMovieToFavorite(){
+        // https://stackoverflow.com/questions/6341977/convert-drawable-to-blob-datatype
+        BitmapDrawable moviePoster = (BitmapDrawable) mMoviePosterImageView.getDrawable();
+        Bitmap  moviePosterBitmap = moviePoster.getBitmap();
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        moviePosterBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+        byte[] moviePosterBlob = stream.toByteArray();
+
+
+
+        ContentValues cv = new ContentValues();
+        cv.put(PopularMovieContract.MovieEntry.COLUMN_ID, mMovie.getId());
+        cv.put(PopularMovieContract.MovieEntry.COLUMN_TITLE, mMovie.getTitle());
+        cv.put(PopularMovieContract.MovieEntry.COLUMN_ORIGINAL_TITLE, mMovie.getOriginalTitle());
+        cv.put(PopularMovieContract.MovieEntry.COLUMN_ORIGINAL_LANGUAGE, mMovie.getOriginalLanguage());
+        cv.put(PopularMovieContract.MovieEntry.COLUMN_RELEASE_DATE, mMovie.getReleaseDate());
+        cv.put(PopularMovieContract.MovieEntry.COLUMN_POSTER, mMovie.getMoviePoster());
+        cv.put(PopularMovieContract.MovieEntry.COLUMN_POSTER_BLOB, moviePosterBlob);
+        cv.put(PopularMovieContract.MovieEntry.COLUMN_VOTE, mMovie.getVoteAverage());
+        cv.put(PopularMovieContract.MovieEntry.COLUMN_SYNOPSIS, mMovie.getSynopsis());
+        mDb.insert(PopularMovieContract.MovieEntry.TABLE_MOVIE, null, cv);
+
+        int movieID = mMovie.getId();
+        if (mTrailerList != null) {
+            List<Trailer> trailers = mTrailerList.getResults();
+            for (Trailer trailer : trailers) {
+                ContentValues cvTrailer = new ContentValues();
+                cvTrailer.put(PopularMovieContract.TrailerEntry.COLUMN_MOVIE, movieID);
+                cvTrailer.put(PopularMovieContract.TrailerEntry.COLUMN_ID, trailer.getId());
+                cvTrailer.put(PopularMovieContract.TrailerEntry.COLUMN_KEY, trailer.getKey());
+                cvTrailer.put(PopularMovieContract.TrailerEntry.COLUMN_NAME, trailer.getName());
+                mDb.insert(PopularMovieContract.TrailerEntry.TABLE_TRAILER, null, cvTrailer);
+            }
+        }
+
+        if (mReviewList != null) {
+            List<Review> reviews = mReviewList.getResults();
+            for (Review review : reviews) {
+                ContentValues cvReview = new ContentValues();
+                cvReview.put(PopularMovieContract.ReviewEntry.COLUMN_MOVIE, movieID);
+                cvReview.put(PopularMovieContract.ReviewEntry.COLUMN_ID, review.getId());
+                cvReview.put(PopularMovieContract.ReviewEntry.COLUMN_AUTHOR, review.getAuthor());
+                cvReview.put(PopularMovieContract.ReviewEntry.COLUMN_CONTENT, review.getContent());
+                cvReview.put(PopularMovieContract.ReviewEntry.COLUMN_URL, review.getUrl());
+                mDb.insert(PopularMovieContract.ReviewEntry.TABLE_REVIEW, null, cvReview);
+            }
+        }
+
+    }
+
+    private void removeMovieFromFavorite(){
+        int movieId = mMovie.getId();
+        mDb.delete(PopularMovieContract.ReviewEntry.TABLE_REVIEW, PopularMovieContract.ReviewEntry.COLUMN_MOVIE + "=" + movieId, null);
+        mDb.delete(PopularMovieContract.TrailerEntry.TABLE_TRAILER, PopularMovieContract.TrailerEntry.COLUMN_MOVIE + "=" + movieId, null);
+        mDb.delete(PopularMovieContract.MovieEntry.TABLE_MOVIE, PopularMovieContract.MovieEntry.COLUMN_ID + "=" + movieId, null);
     }
 }

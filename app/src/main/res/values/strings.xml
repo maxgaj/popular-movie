@@ -31,8 +31,10 @@
     <string name="pref_sort_key" translatable="false">sort</string>
     <string name="pref_sort_popular_label">Most popular</string>
     <string name="pref_sort_top_rated_label">Top rated</string>
+    <string name="pref_sort_favorite_label">Favorite</string>
     <string name="pref_sort_popular" translatable="false">popular</string>
     <string name="pref_sort_top_rated" translatable="false">rated</string>
+    <string name="pref_sort_favorite" translatable="false">favorite</string>
 
     <string name="base_url_tmdb" translatable="false">https://api.themoviedb.org/</string>
     <string name="title_activity_test">TestActivity</string>
@@ -40,5 +42,8 @@
     <string name="tab_text_2">Tab 2</string>
     <string name="tab_text_3">Tab 3</string>
     <string name="section_format">Hello World from section: %1$d</string>
+
+    <string name="favorite_add">Added to favorite</string>
+    <string name="favorite_removed">Removed from favorite</string>
 
 </resources>

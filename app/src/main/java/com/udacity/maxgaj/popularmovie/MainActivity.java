@@ -1,6 +1,8 @@
 package com.udacity.maxgaj.popularmovie;
 
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.AsyncTaskLoader;
 import android.content.Context;
@@ -18,12 +20,17 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
 
+import com.udacity.maxgaj.popularmovie.data.PopularMovieContract;
+import com.udacity.maxgaj.popularmovie.data.PopularMovieDbHelper;
+import com.udacity.maxgaj.popularmovie.models.Movie;
 import com.udacity.maxgaj.popularmovie.models.Page;
 import com.udacity.maxgaj.popularmovie.utilities.JsonUtils;
 import com.udacity.maxgaj.popularmovie.utilities.NetworkUtils;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -43,6 +50,8 @@ public class MainActivity extends AppCompatActivity implements
     private static final int LOADER_ID = 10;
     private static boolean UPDATED_PREFERENCES = false;
 
+    private SQLiteDatabase mDb;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +59,9 @@ public class MainActivity extends AppCompatActivity implements
         setContentView(R.layout.activity_main);
         // Using ButterKnife as suggested by my first reviewer
         ButterKnife.bind(this);
+
+        PopularMovieDbHelper dbHelper = new PopularMovieDbHelper(this);
+        mDb = dbHelper.getReadableDatabase();
 
         //handling button according to documentation
         //https://developer.android.com/reference/android/widget/Button.html
@@ -91,6 +103,12 @@ public class MainActivity extends AppCompatActivity implements
         PreferenceManager.getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(this);
     }
 
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        refreshData();
+    }
+
     private void refreshData(){
         showDataView();
         mAdapter.setMovieData(null);
@@ -112,6 +130,8 @@ public class MainActivity extends AppCompatActivity implements
             NetworkUtils.setSortingToPopular();
         else if (sortPreference.equals(getResources().getString(R.string.pref_sort_top_rated)))
             NetworkUtils.setSortingToTopRated();
+        else if (sortPreference.equals(getResources().getString(R.string.pref_sort_favorite)))
+            NetworkUtils.setSortingToFavorite();
     }
 
     @Override
@@ -132,15 +152,19 @@ public class MainActivity extends AppCompatActivity implements
 
             @Override
             public String loadInBackground() {
-                URL url = NetworkUtils.buildURL();
-                String json = null;
-                try {
-                    json = NetworkUtils.getJsonFromUrl(url);
+                if (!NetworkUtils.isFavoriteSorting()) {
+                    URL url = NetworkUtils.buildURL();
+                    String json = null;
+                    try {
+                        json = NetworkUtils.getJsonFromUrl(url);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    return json;
                 }
-                catch (IOException e) {
-                    e.printStackTrace();
+                else {
+                    return null;
                 }
-                return json;
             }
 
             @Override
@@ -154,14 +178,20 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onLoadFinished(Loader<String> loader, String s) {
         mLoadingProgressBar.setVisibility(View.INVISIBLE);
-        if (s != null && !s.equals("")) {
-            showDataView();
-            mPage = JsonUtils.parsePageJson(s);
-            if (mPage != null)
-                mAdapter.setMovieData(mPage.getResults());
+        if (!NetworkUtils.isFavoriteSorting()) {
+            if (s != null && !s.equals("")) {
+                showDataView();
+                mPage = JsonUtils.parsePageJson(s);
+                if (mPage != null)
+                    mAdapter.setMovieData(mPage.getResults());
+            } else {
+                showErrorView();
+            }
         }
         else {
-            showErrorView();
+            mPage = queryAllFavoriteMovies();
+            mAdapter.setMovieData(mPage.getResults());
+            showDataView();
         }
     }
 
@@ -209,4 +239,43 @@ public class MainActivity extends AppCompatActivity implements
            setSortPreference(sharedPreferences.getString(s, getResources().getString(R.string.pref_sort_popular)));
        }
     }
+
+    private Page queryAllFavoriteMovies(){
+        Cursor cursor = mDb.query(
+                PopularMovieContract.MovieEntry.TABLE_MOVIE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        List<Movie> movies = new ArrayList<>();
+        try {
+            while (cursor.moveToNext()){
+                int id = cursor.getInt(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_ID));
+                String title = cursor.getString(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_TITLE));
+                String originalTitle = cursor.getString(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_ORIGINAL_TITLE));
+                String originalLanguage = cursor.getString(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_ORIGINAL_LANGUAGE));
+                String releaseDate = cursor.getString(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_RELEASE_DATE));
+                String moviePoster = cursor.getString(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_POSTER));
+                Double voteAverage = cursor.getDouble(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_VOTE));
+                String synopsis = cursor.getString(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_SYNOPSIS));
+                Movie movie = new Movie(id, title, originalTitle, originalLanguage, releaseDate, moviePoster, voteAverage, synopsis);
+                movies.add(movie);
+            }
+        } finally {
+            cursor.close();
+        }
+        int pageNumber = 1;
+        int totalPages = 1;
+        int totalResults = movies.size();
+        List<String> results = new ArrayList<>();
+        for(Movie movie : movies){
+            String movieJson = JsonUtils.parseMovieToJson(movie);
+            results.add(movieJson);
+        }
+        return new Page(pageNumber, totalResults, totalPages, results);
+    }
+
 }

@@ -21,10 +21,11 @@ public class PopularMovieDbHelper extends SQLiteOpenHelper {
                         MovieEntry._ID                      + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         MovieEntry.COLUMN_ID                + " INTEGER, " +
                         MovieEntry.COLUMN_TITLE             + " TEXT, " +
-                        MovieEntry.COLUMN_ORIGIBAL_TITLE    + " TEXT, " +
+                        MovieEntry.COLUMN_ORIGINAL_TITLE    + " TEXT, " +
+                        MovieEntry.COLUMN_ORIGINAL_LANGUAGE + " TEXT, " +
                         MovieEntry.COLUMN_RELEASE_DATE      + " TEXT, " +
                         MovieEntry.COLUMN_POSTER            + " TEXT, " +
-                        MovieEntry.COLUMN_POSTER_DATA       + " BLOB, " +
+                        MovieEntry.COLUMN_POSTER_BLOB       + " BLOB, " +
                         MovieEntry.COLUMN_VOTE              + " REAL, " +
                         MovieEntry.COLUMN_SYNOPSIS          + " TEXT"
                 + ");";

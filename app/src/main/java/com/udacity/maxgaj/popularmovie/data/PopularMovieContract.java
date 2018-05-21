@@ -26,10 +26,11 @@ public class PopularMovieContract {
         public static final String TABLE_MOVIE = "movie";
         public static final String COLUMN_ID = "id_tmdb";
         public static final String COLUMN_TITLE = "title";
-        public static final String COLUMN_ORIGIBAL_TITLE = "original_title";
+        public static final String COLUMN_ORIGINAL_TITLE = "original_title";
+        public static final String COLUMN_ORIGINAL_LANGUAGE = "original_language";
         public static final String COLUMN_RELEASE_DATE = "release_date";
         public static final String COLUMN_POSTER = "poster";
-        public static final String COLUMN_POSTER_DATA = "poster_data";
+        public static final String COLUMN_POSTER_BLOB = "poster_blob";
         public static final String COLUMN_VOTE = "vote";
         public static final String COLUMN_SYNOPSIS = "synopsis";
     }
