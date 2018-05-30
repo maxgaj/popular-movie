@@ -4,7 +4,6 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.AsyncTaskLoader;
 import android.content.Context;
@@ -23,7 +22,6 @@ import android.widget.Button;
 import android.widget.ProgressBar;
 
 import com.squareup.picasso.Picasso;
-import com.squareup.picasso.Target;
 import com.udacity.maxgaj.popularmovie.data.PopularMovieContract;
 import com.udacity.maxgaj.popularmovie.models.Movie;
 import com.udacity.maxgaj.popularmovie.models.Page;
@@ -133,6 +131,9 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public Loader<Page> onCreateLoader(int i, final Bundle bundle) {
+        // https://stackoverflow.com/questions/44309241/warning-this-asynctask-class-should-be-static-or-leaks-might-occur/44309450
+
+
         return new AsyncTaskLoader<Page>(this) {
             Page pageData = null;
 

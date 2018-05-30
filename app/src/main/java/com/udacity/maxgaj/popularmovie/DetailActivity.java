@@ -2,7 +2,6 @@ package com.udacity.maxgaj.popularmovie;
 
 import android.content.*;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.CursorLoader;
@@ -12,7 +11,6 @@ import android.net.Uri;
 import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.*;
@@ -20,7 +18,6 @@ import android.widget.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.udacity.maxgaj.popularmovie.data.PopularMovieContract;
-import com.udacity.maxgaj.popularmovie.data.PopularMovieDbHelper;
 import com.udacity.maxgaj.popularmovie.models.*;
 import com.udacity.maxgaj.popularmovie.network.TheMovieDBClient;
 import com.udacity.maxgaj.popularmovie.utilities.MovieUtils;
@@ -45,7 +42,6 @@ public class DetailActivity extends AppCompatActivity implements
     private Movie mMovie;
     private ReviewList mReviewList;
     private TrailerList mTrailerList;
-    private SQLiteDatabase mDb;
 
     @BindView(R.id.tv_movie_title) TextView mTitleTextView;
     @BindView(R.id.tb_favorite) ToggleButton mFavoriteToggleButton;
@@ -67,9 +63,6 @@ public class DetailActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        PopularMovieDbHelper dbHelper = new PopularMovieDbHelper(this);
-        mDb = dbHelper.getWritableDatabase();
-
         setContentView(R.layout.activity_detail);
         ButterKnife.bind(this);
 
@@ -83,7 +76,7 @@ public class DetailActivity extends AppCompatActivity implements
         getSupportLoaderManager().initLoader(REVIEWS_LOADER_ID, null, this);
     }
 
-    public void hydrateUI(){
+    private void hydrateUI(){
         if (mMovie != null) {
             String title = mMovie.getTitle();
             String contentDescription = title+" movie poster";

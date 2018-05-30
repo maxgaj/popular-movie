@@ -1,8 +1,6 @@
 package com.udacity.maxgaj.popularmovie.utilities;
 
 
-import android.util.Log;
-
 import com.udacity.maxgaj.popularmovie.models.Movie;
 import com.udacity.maxgaj.popularmovie.models.Page;
 
@@ -54,61 +52,6 @@ public final class JsonUtils {
         catch (JSONException e) {
             e.printStackTrace();
             return null;
-        }
-    }
-
-    public static String parseMovieToJson(Movie movie){
-        JSONObject movieData = new JSONObject();
-        try {
-            movieData.put("id", movie.getId());
-            movieData.put("title", movie.getTitle());
-            movieData.put("original_title", movie.getOriginalTitle());
-            movieData.put("original_language", movie.getOriginalLanguage());
-            movieData.put("release_date", movie.getReleaseDate());
-            movieData.put("poster_path", movie.getMoviePoster());
-            movieData.put("vote_average", movie.getVoteAverage());
-            movieData.put("overview", movie.getSynopsis());
-            return movieData.toString();
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-
-    public static String getImagePathFromMovieJson (String json){
-        try {
-            JSONObject movieData = new JSONObject(json);
-            String imagePath = movieData.optString("poster_path");
-            return imagePath;
-        }
-        catch (JSONException e) {
-            e.printStackTrace();
-            return "";
-        }
-    }
-
-    public static String getTitleFromMovieJson (String json){
-        try {
-            JSONObject movieData = new JSONObject(json);
-            String title = movieData.optString("title");
-            return title;
-        }
-        catch (JSONException e) {
-            e.printStackTrace();
-            return "";
-        }
-    }
-
-    public static int getIdFromMovieJson (String json){
-        try {
-            JSONObject movieData = new JSONObject(json);
-            int id = movieData.optInt("id");
-            return id;
-        }
-        catch (JSONException e) {
-            e.printStackTrace();
-            return -1;
         }
     }
 
