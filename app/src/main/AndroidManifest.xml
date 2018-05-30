@@ -36,6 +36,11 @@
                     android:name="android.support.PARENT_ACTIVITY"
                     android:value=".MainActivity"/>
         </activity>
+
+        <provider
+            android:name="com.udacity.maxgaj.popularmovie.data.PopularMovieContentProvider"
+            android:authorities="com.udacity.maxgaj.popularmovie"
+            android:exported="false"/>
     </application>
 
 </manifest>

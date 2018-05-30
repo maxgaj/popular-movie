@@ -7,11 +7,11 @@ public class Page {
     private int pageNumber;
     private int totalResults;
     private int totalPages;
-    private List<String> results;
+    private List<Movie> results;
 
     public Page(){}
 
-    public Page (int pageNumber, int totalResults, int totalPages, List<String> results){
+    public Page (int pageNumber, int totalResults, int totalPages, List<Movie> results){
         this.pageNumber = pageNumber;
         this.totalResults = totalResults;
         this.totalPages = totalPages;
@@ -42,15 +42,15 @@ public class Page {
         this.totalPages = totalPages;
     }
 
-    public List<String> getResults() {
+    public List<Movie> getResults() {
         return results;
     }
 
-    public String getResult (int index){
+    public Movie getResult (int index){
         return this.results.get(index);
     }
 
-    public void setResults(List<String> results) {
+    public void setResults(List<Movie> results) {
         this.results = results;
     }
 }

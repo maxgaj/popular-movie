@@ -23,7 +23,12 @@ public final class JsonUtils {
             int pageNumber = pageData.optInt("page");
             int totalResults = pageData.optInt("total_results");
             int totalPages = pageData.optInt("total_pages");
-            List<String> results = parseJsonArrayToList(resultsArray);
+            List<String> moviesJson = parseJsonArrayToList(resultsArray);
+            List<Movie> results = new ArrayList<>();
+            for (String movieJson : moviesJson){
+                Movie movie = parseMovieJson(movieJson);
+                results.add(movie);
+            }
             return new Page(pageNumber, totalResults, totalPages, results);
 
         }

@@ -1,29 +1,28 @@
 package com.udacity.maxgaj.popularmovie;
 
-import android.content.ContentValues;
-import android.content.Context;
-import android.content.Intent;
+import android.content.*;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
+import android.support.v4.app.LoaderManager.LoaderCallbacks;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
+
+import android.net.Uri;
 import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.*;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.squareup.picasso.Picasso;
 import com.udacity.maxgaj.popularmovie.data.PopularMovieContract;
 import com.udacity.maxgaj.popularmovie.data.PopularMovieDbHelper;
 import com.udacity.maxgaj.popularmovie.models.*;
 import com.udacity.maxgaj.popularmovie.network.TheMovieDBClient;
-import com.udacity.maxgaj.popularmovie.utilities.JsonUtils;
 import com.udacity.maxgaj.popularmovie.utilities.MovieUtils;
 import com.udacity.maxgaj.popularmovie.utilities.NetworkUtils;
 
@@ -38,11 +37,11 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.io.ByteArrayOutputStream;
-import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DetailActivity extends AppCompatActivity {
+public class DetailActivity extends AppCompatActivity implements
+        LoaderCallbacks<Cursor> {
     private Movie mMovie;
     private ReviewList mReviewList;
     private TrailerList mTrailerList;
@@ -60,6 +59,9 @@ public class DetailActivity extends AppCompatActivity {
     @BindView(R.id.ll_trailer) LinearLayout mTrailerView;
     @BindView(R.id.ll_review) LinearLayout mReviewView;
 
+    private static final int TRAILERS_LOADER_ID = 11;
+    private static final int REVIEWS_LOADER_ID = 12;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,50 +74,23 @@ public class DetailActivity extends AppCompatActivity {
         ButterKnife.bind(this);
 
         Intent intent = getIntent();
-        if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
-            String movieJson = intent.getStringExtra(Intent.EXTRA_TEXT);
-            mMovie = JsonUtils.parseMovieJson(movieJson);
+        if (intent != null && intent.hasExtra("Movie")) {
+            mMovie = intent.getParcelableExtra("Movie");
         }
 
         hydrateUI();
+        getSupportLoaderManager().initLoader(TRAILERS_LOADER_ID, null, this);
+        getSupportLoaderManager().initLoader(REVIEWS_LOADER_ID, null, this);
     }
 
     public void hydrateUI(){
         if (mMovie != null) {
             String title = mMovie.getTitle();
-            String imageUri = NetworkUtils.buildImageUri(mMovie.getMoviePoster());
             String contentDescription = title+" movie poster";
+            mMoviePosterImageView.setImageBitmap(mMovie.getMoviePosterBitmap());
             mMoviePosterImageView.setContentDescription(contentDescription);
 
             mTitleTextView.setText(title);
-
-            if (!NetworkUtils.isFavoriteSorting()) {
-                Picasso.with(this)
-                        .load(imageUri)
-                        .into(mMoviePosterImageView);
-            }
-            else{
-                int movieId = mMovie.getId();
-                Cursor cursor = mDb.query(
-                        PopularMovieContract.MovieEntry.TABLE_MOVIE,
-                        new String[]{PopularMovieContract.MovieEntry.COLUMN_POSTER_BLOB},
-                        PopularMovieContract.MovieEntry.COLUMN_ID + "=" + movieId,
-                        null,
-                        null,
-                        null,
-                        null
-                );
-                try {
-                    if (cursor != null) {
-                        cursor.moveToFirst();
-                        byte[] moviePosterBlob = cursor.getBlob(cursor.getColumnIndex(PopularMovieContract.MovieEntry.COLUMN_POSTER_BLOB));
-                        Bitmap moviePosterBitmap = BitmapFactory.decodeByteArray(moviePosterBlob, 0, moviePosterBlob.length);
-                        mMoviePosterImageView.setImageBitmap(moviePosterBitmap);
-                    }
-                } finally {
-                    cursor.close();
-                }
-            }
 
             mOriginalTitleTextView.setText(MovieUtils.formatOriginalTitle(mMovie.getOriginalTitle(), mMovie.getOriginalLanguage()));
             mReleaseDateTextView.setText(MovieUtils.formatReleaseDate(mMovie.getReleaseDate()));
@@ -187,39 +162,6 @@ public class DetailActivity extends AppCompatActivity {
                 }
             });
         }
-        else {
-            // Fetching from DB
-            int movieId = mMovie.getId();
-            Cursor cursor = mDb.query(
-                    PopularMovieContract.TrailerEntry.TABLE_TRAILER,
-                    null,
-                    PopularMovieContract.TrailerEntry.COLUMN_MOVIE + "=" + movieId,
-                    null,
-                    null,
-                    null,
-                    null
-            );
-            List<Trailer> trailers = new ArrayList<>();
-            try {
-                while (cursor.moveToNext()){
-                    String id = cursor.getString(cursor.getColumnIndex(PopularMovieContract.TrailerEntry.COLUMN_ID));
-                    String key = cursor.getString(cursor.getColumnIndex(PopularMovieContract.TrailerEntry.COLUMN_KEY));
-                    String name = cursor.getString(cursor.getColumnIndex(PopularMovieContract.TrailerEntry.COLUMN_NAME));
-
-                   Trailer trailer = new Trailer(id, key, name);
-                   trailers.add(trailer);
-                }
-            } finally {
-                cursor.close();
-            }
-            mTrailerList = new TrailerList(movieId, trailers);
-            if (trailers.size() <= 0 )
-                mTrailerError.setVisibility(View.VISIBLE);
-            else {
-                mTrailerError.setVisibility(View.INVISIBLE);
-                addTrailersToUI(trailers);
-            }
-        }
     }
 
     private void addTrailersToUI(List<Trailer> trailers){
@@ -275,42 +217,6 @@ public class DetailActivity extends AppCompatActivity {
                 }
             });
         }
-        else {
-            // Fetching from DB
-            int movieId = mMovie.getId();
-            Cursor cursor = mDb.query(
-                    PopularMovieContract.ReviewEntry.TABLE_REVIEW,
-                    null,
-                    PopularMovieContract.ReviewEntry.COLUMN_MOVIE + "=" + movieId,
-                    null,
-                    null,
-                    null,
-                    null
-            );
-            List<Review> reviews = new ArrayList<>();
-            try {
-                while (cursor.moveToNext()){
-                    String id = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_ID));
-                    String author = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_AUTHOR));
-                    String content = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_CONTENT));
-                    String url = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_URL));
-
-                    Review review = new Review(author, content, id, url);
-                    reviews.add(review);
-                }
-            } finally {
-                cursor.close();
-            }
-            mReviewList = new ReviewList(movieId, 1, reviews, 1, reviews.size());
-            if (reviews.size() <= 0 )
-                mReviewError.setVisibility(View.VISIBLE);
-            else {
-                mReviewError.setVisibility(View.INVISIBLE);
-                addReviewsToUI(reviews);
-            }
-
-        }
-
     }
 
     private void addReviewsToUI(List<Review> reviews){
@@ -328,20 +234,16 @@ public class DetailActivity extends AppCompatActivity {
     /* Data */
     private boolean isFavoriteChecked(){
         int movieId = mMovie.getId();
-        Cursor cursor = mDb.query(
-                PopularMovieContract.MovieEntry.TABLE_MOVIE,
-                new String[] { "COUNT(*) AS nb" },
-                PopularMovieContract.MovieEntry.COLUMN_ID + "=" + movieId,
-                null,
-                null,
-                null,
-                null
-        );
+        Uri uri = PopularMovieContract.MovieEntry.buildCountUri(movieId);
+        Cursor cursor = getContentResolver().query(uri, null, null, null, null);
         boolean isChecked = false;
         try {
             cursor.moveToFirst();
             int nb = cursor.getInt(cursor.getColumnIndex("nb"));
-            isChecked = (nb>0) ? true : false;
+            isChecked = nb > 0;
+        } catch (Exception e){
+            e.printStackTrace();
+            return false;
         } finally {
             cursor.close();
         }
@@ -350,8 +252,7 @@ public class DetailActivity extends AppCompatActivity {
 
     private void addMovieToFavorite(){
         // https://stackoverflow.com/questions/6341977/convert-drawable-to-blob-datatype
-        BitmapDrawable moviePoster = (BitmapDrawable) mMoviePosterImageView.getDrawable();
-        Bitmap  moviePosterBitmap = moviePoster.getBitmap();
+        Bitmap  moviePosterBitmap = mMovie.getMoviePosterBitmap();
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         moviePosterBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         byte[] moviePosterBlob = stream.toByteArray();
@@ -368,7 +269,7 @@ public class DetailActivity extends AppCompatActivity {
         cv.put(PopularMovieContract.MovieEntry.COLUMN_POSTER_BLOB, moviePosterBlob);
         cv.put(PopularMovieContract.MovieEntry.COLUMN_VOTE, mMovie.getVoteAverage());
         cv.put(PopularMovieContract.MovieEntry.COLUMN_SYNOPSIS, mMovie.getSynopsis());
-        mDb.insert(PopularMovieContract.MovieEntry.TABLE_MOVIE, null, cv);
+        getContentResolver().insert(PopularMovieContract.MovieEntry.CONTENT_URI, cv);
 
         int movieID = mMovie.getId();
         if (mTrailerList != null) {
@@ -379,7 +280,7 @@ public class DetailActivity extends AppCompatActivity {
                 cvTrailer.put(PopularMovieContract.TrailerEntry.COLUMN_ID, trailer.getId());
                 cvTrailer.put(PopularMovieContract.TrailerEntry.COLUMN_KEY, trailer.getKey());
                 cvTrailer.put(PopularMovieContract.TrailerEntry.COLUMN_NAME, trailer.getName());
-                mDb.insert(PopularMovieContract.TrailerEntry.TABLE_TRAILER, null, cvTrailer);
+                getContentResolver().insert(PopularMovieContract.TrailerEntry.CONTENT_URI, cvTrailer);
             }
         }
 
@@ -392,7 +293,7 @@ public class DetailActivity extends AppCompatActivity {
                 cvReview.put(PopularMovieContract.ReviewEntry.COLUMN_AUTHOR, review.getAuthor());
                 cvReview.put(PopularMovieContract.ReviewEntry.COLUMN_CONTENT, review.getContent());
                 cvReview.put(PopularMovieContract.ReviewEntry.COLUMN_URL, review.getUrl());
-                mDb.insert(PopularMovieContract.ReviewEntry.TABLE_REVIEW, null, cvReview);
+                getContentResolver().insert(PopularMovieContract.ReviewEntry.CONTENT_URI, cvReview);
             }
         }
 
@@ -400,8 +301,87 @@ public class DetailActivity extends AppCompatActivity {
 
     private void removeMovieFromFavorite(){
         int movieId = mMovie.getId();
-        mDb.delete(PopularMovieContract.ReviewEntry.TABLE_REVIEW, PopularMovieContract.ReviewEntry.COLUMN_MOVIE + "=" + movieId, null);
-        mDb.delete(PopularMovieContract.TrailerEntry.TABLE_TRAILER, PopularMovieContract.TrailerEntry.COLUMN_MOVIE + "=" + movieId, null);
-        mDb.delete(PopularMovieContract.MovieEntry.TABLE_MOVIE, PopularMovieContract.MovieEntry.COLUMN_ID + "=" + movieId, null);
+        Uri uri = PopularMovieContract.MovieEntry.CONTENT_URI.buildUpon().appendPath(Integer.toString(movieId)).build();
+        getContentResolver().delete(uri, null, null);
     }
+
+
+
+    @Override
+    public Loader onCreateLoader(int i, Bundle bundle) {
+        int movieId = mMovie.getId();
+        Uri uri;
+        CursorLoader cursorLoader;
+        switch (i){
+            case TRAILERS_LOADER_ID:
+                uri = PopularMovieContract.TrailerEntry.buildUriWithMovieId(movieId);
+                cursorLoader = new CursorLoader(this, uri, null, null, null, null);
+                break;
+            case REVIEWS_LOADER_ID:
+                uri = PopularMovieContract.ReviewEntry.buildUriWithMovieId(movieId);
+                cursorLoader = new CursorLoader(this, uri, null, null, null, null);
+                break;
+            default:
+                cursorLoader = null;
+                break;
+        }
+        return cursorLoader;
+    }
+
+
+    @Override
+    public void onLoadFinished(Loader loader, Cursor cursor) {
+        int LoaderId = loader.getId();
+        int movieId = mMovie.getId();
+        switch (LoaderId){
+            case TRAILERS_LOADER_ID:
+                List<Trailer> trailers = new ArrayList<>();
+                try {
+                    while (cursor.moveToNext()){
+                        String id = cursor.getString(cursor.getColumnIndex(PopularMovieContract.TrailerEntry.COLUMN_ID));
+                        String key = cursor.getString(cursor.getColumnIndex(PopularMovieContract.TrailerEntry.COLUMN_KEY));
+                        String name = cursor.getString(cursor.getColumnIndex(PopularMovieContract.TrailerEntry.COLUMN_NAME));
+
+                        Trailer trailer = new Trailer(id, key, name);
+                        trailers.add(trailer);
+                    }
+                } finally {
+                    cursor.close();
+                }
+                mTrailerList = new TrailerList(movieId, trailers);
+                if (trailers.size() <= 0 )
+                    mTrailerError.setVisibility(View.VISIBLE);
+                else {
+                    mTrailerError.setVisibility(View.INVISIBLE);
+                    addTrailersToUI(trailers);
+                }
+                break;
+            case REVIEWS_LOADER_ID:
+                List<Review> reviews = new ArrayList<>();
+                try {
+                    while (cursor.moveToNext()){
+                        String id = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_ID));
+                        String author = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_AUTHOR));
+                        String content = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_CONTENT));
+                        String url = cursor.getString(cursor.getColumnIndex(PopularMovieContract.ReviewEntry.COLUMN_URL));
+
+                        Review review = new Review(author, content, id, url);
+                        reviews.add(review);
+                    }
+                } finally {
+                    cursor.close();
+                }
+                mReviewList = new ReviewList(movieId, 1, reviews, 1, reviews.size());
+                if (reviews.size() <= 0 )
+                    mReviewError.setVisibility(View.VISIBLE);
+                else {
+                    mReviewError.setVisibility(View.INVISIBLE);
+                    addReviewsToUI(reviews);
+                }
+                break;
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader loader) {}
 }
